@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-bg: #08060f;
+  --color-brand-card: rgba(16, 12, 28, 0.6);
+  --color-brand-border: rgba(168, 85, 247, 0.15);
+  --color-brand-border-hover: rgba(236, 72, 153, 0.35);
+  
+  --color-neon-purple: #a855f7;
+  --color-neon-pink: #ec4899;
+  --color-neon-cyan: #06b6d4;
+  --color-neon-green: #22c55e;
+  --color-neon-red: #ef4444;
+  
+  --font-display: 'Outfit', 'Inter', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-brand-bg);
+    background-image: 
+      radial-gradient(circle at 15% 15%, rgba(26, 15, 48, 0.45) 0%, transparent 45%),
+      radial-gradient(circle at 85% 85%, rgba(13, 30, 60, 0.35) 0%, transparent 45%);
+    background-attachment: fixed;
+    color: #f3f4f6;
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-brand-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-brand-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neon-purple);
+}
+
+/* Shimmer skeleton loader */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, rgba(26,20,48,0.4) 25%, rgba(42,32,77,0.4) 50%, rgba(26,20,48,0.4) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}

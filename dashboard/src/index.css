@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-bg: #07050c;
+  --color-brand-card: rgba(14, 10, 24, 0.65);
+  --color-brand-border: rgba(168, 85, 247, 0.15);
+  --color-brand-border-hover: rgba(236, 72, 153, 0.35);
+  
+  --color-neon-purple: #a855f7;
+  --color-neon-pink: #ec4899;
+  --color-neon-cyan: #06b6d4;
+  --color-neon-green: #22c55e;
+  --color-neon-red: #ef4444;
+  
+  --font-display: 'Outfit', 'Inter', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-brand-bg);
+    background-image: 
+      radial-gradient(circle at 10% 15%, rgba(26, 15, 48, 0.45) 0%, transparent 40%),
+      radial-gradient(circle at 90% 85%, rgba(13, 30, 60, 0.35) 0%, transparent 40%);
+    background-attachment: fixed;
+    color: #f3f4f6;
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+.glass {
+  background: var(--color-brand-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-brand-border);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass:hover {
+  border-color: var(--color-brand-border-hover);
+  box-shadow: 0 0 25px rgba(236, 72, 153, 0.12);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-brand-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-brand-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neon-purple);
+}

@@ -1,0 +1,79 @@
+---
+import Layout from '../layouts/Layout.astro';
+import VtuberDashboard from '../components/VtuberDashboard';
+
+// Fetch approved VTubers from backend at build-time (SSG) for full search engine optimization (SEO)
+let vtubers = [];
+const BACKEND_URL = import.meta.env.PUBLIC_BACKEND_URL || "http://localhost:3000";
+
+try {
+  const res = await fetch(`${BACKEND_URL}/api/vtubers`);
+  if (res.ok) {
+    vtubers = await res.json();
+  }
+} catch (err) {
+  console.log("Could not fetch VTubers during static generation, using fallback mock data.");
+  // Fallback VTuber mock data for perfect SEO indexing even when offline/building
+  vtubers = [
+    {
+      channelId: "UCp6o9cttA2u85OPZuaG1t8g",
+      displayName: "Gawr Gura Ch. hololive-EN",
+      avatarUrl: "https://yt3.ggpht.com/uM2DMugocZu1Z45Zg6S92fW_5tWl3O8p8t19mC9S6m2_4491-b306-3f8e38d758ec",
+      description: "A descendant of the Lost City of Atlantis, who swam to Earth while saying, 'It's so boring down there lolol!' Gawr Gura is Hololive's most subscribed talent.",
+      subscriberCount: 4430000,
+      viewCount: 412000000,
+      videoCount: 382,
+      type: "agency",
+      agencyName: "Hololive",
+      streamFrequencyRank: 5,
+      createdAt: new Date().toISOString()
+    },
+    {
+      channelId: "UC_x5XG1OV2P6uZZ5FSM9Ttw",
+      displayName: "Chime VTuber (Skeleton Demo)",
+      avatarUrl: "https://yt3.ggpht.com/ytc/AIdro_n8-7V0nS...",
+      description: "A popular Vietnamese VTuber who streams gaming, chatting, and interactive community sessions with incredible animation rigs.",
+      subscriberCount: 25000,
+      viewCount: 1200000,
+      videoCount: 95, // Under 100 -> New Channel tag
+      type: "independent",
+      agencyName: "",
+      streamFrequencyRank: 8,
+      createdAt: new Date().toISOString()
+    }
+  ];
+}
+---
+
+<Layout title="VNVtuber Hub - Tổng Hợp Trạng Thái Live và Kênh VTuber Việt Nam">
+  <!-- Hero Section -->
+  <section class="relative py-16 sm:py-20 flex flex-col items-center text-center overflow-hidden">
+    <!-- Neon back glow -->
+    <div class="absolute top-0 w-[400px] h-[400px] bg-radial from-neon-purple/20 to-transparent blur-3xl -z-10 animate-pulse" />
+    
+    <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight leading-none mb-4">
+      Mạng Lưới <span class="bg-gradient-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">VTuber Việt Nam</span>
+    </h1>
+    
+    <p className="text-zinc-400 text-sm sm:text-base max-w-xl leading-relaxed mb-8 px-4">
+      Hệ thống tổng hợp, giám sát livestream 24/7 thời gian thực và danh sách kết nối cộng đồng VTuber Việt Nam.
+    </p>
+
+    <!-- Micro-stat card -->
+    <div className="flex gap-4">
+      <div className="glass px-6 py-2.5 rounded-xl flex items-center gap-2">
+        <span className="w-1.5 h-1.5 rounded-full bg-neon-purple shadow-[0_0_8px_#a855f7]" />
+        <span className="text-xs font-bold text-zinc-300"><strong className="text-white">{vtubers.length}</strong> VTubers</span>
+      </div>
+      <div className="glass px-6 py-2.5 rounded-xl flex items-center gap-2">
+        <span className="w-1.5 h-1.5 rounded-full bg-neon-red shadow-[0_0_8px_#ef4444] animate-ping" />
+        <span className="text-xs font-bold text-zinc-300">Live WebSub Ready</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive React Hydration Dashboard Container -->
+  <section class="mt-6">
+    <VtuberDashboard client:load initialVtubers={vtubers} backendUrl={BACKEND_URL} />
+  </section>
+</Layout>
