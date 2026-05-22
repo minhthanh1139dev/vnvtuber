@@ -1,0 +1,123 @@
+# VPS 2 vCPU / 4 GB — see deploy/README.md
+# Pull pre-built image from GHCR (no source code / no build on VPS).
+# CI builds via .github/workflows/backend-docker-publish.yml
+#
+# On server (first time):
+#   mkdir -p /opt/vnvtuber && cd /opt/vnvtuber
+#   cp .env.example .env   # edit secrets
+#   docker compose pull && docker compose up -d
+#
+# Updates:
+#   export DOCKER_IMAGE=ghcr.io/<owner>/<repo>/vnvtuber-backend:latest
+#   docker compose pull && docker compose up -d
+
+name: vnvtuber
+
+x-app-image: &app-image
+  image: ${DOCKER_IMAGE:?Set DOCKER_IMAGE in .env or shell}
+  restart: unless-stopped
+  env_file:
+    - .env
+  networks:
+    - vnvtuber-network
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+x-app-env: &app-env
+  NODE_ENV: production
+  PORT: "3000"
+  MONGO_URL: mongodb://mongodb:27017
+  MONGO_DATABASE: vnvtuber
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  TRUST_PROXY: "true"
+
+x-app-depends: &app-depends
+  mongodb:
+    condition: service_healthy
+  redis:
+    condition: service_healthy
+
+services:
+  mongodb:
+    image: mongo:7-jammy
+    container_name: vnvtuber-mongodb
+    restart: unless-stopped
+    # ~4 GB VPS all-in-one: cap Mongo RAM (~0.75 GB cache + overhead)
+    command: ["mongod", "--wiredTigerCacheSizeGB", "0.75"]
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - vnvtuber-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    container_name: vnvtuber-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - vnvtuber-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 8
+      start_period: 5s
+
+  api:
+    <<: *app-image
+    container_name: vnvtuber-api
+    command: ["dumb-init", "node", "src/bin/api/api.js"]
+    environment:
+      <<: *app-env
+    ports:
+      - "${API_PORT:-3000}:3000"
+    depends_on:
+      <<: *app-depends
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 25s
+
+  worker:
+    <<: *app-image
+    container_name: vnvtuber-worker
+    command: ["dumb-init", "node", "src/bin/worker/worker.js"]
+    environment:
+      <<: *app-env
+    depends_on:
+      <<: *app-depends
+      api:
+        condition: service_healthy
+
+  scheduler:
+    <<: *app-image
+    container_name: vnvtuber-scheduler
+    command: ["dumb-init", "node", "src/bin/scheduler/scheduler.js"]
+    environment:
+      <<: *app-env
+    depends_on:
+      <<: *app-depends
+      api:
+        condition: service_healthy
+
+volumes:
+  mongodb_data:
+  redis_data:
+
+networks:
+  vnvtuber-network:
+    driver: bridge

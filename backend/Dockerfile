@@ -1,25 +1,18 @@
-# Use official Node.js lightweight Alpine image
-FROM node:20-alpine
+FROM node:20-alpine AS base
 
-# Set production environment
-ENV NODE_ENV=production
-
-# Set working directory inside container
 WORKDIR /app
 
-# Copy dependency definitions
-COPY package*.json ./
+RUN apk add --no-cache dumb-init curl
 
-# Install production dependencies only (clean install)
-RUN npm ci --only=production
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev && npm cache clean --force
 
-# Copy application source code and scripts
-COPY src/ ./src
-COPY scripts/ ./scripts
-COPY data/ ./data
+COPY src ./src
+COPY scripts ./scripts
+COPY data ./data
 
-# Expose the Express server port
+ENV NODE_ENV=production
 EXPOSE 3000
 
-# Start the application
-CMD ["npm", "start"]
+# Default CMD — override per service in docker-compose (api / worker / scheduler)
+CMD ["dumb-init", "node", "src/bin/api/api.js"]

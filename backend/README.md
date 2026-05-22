@@ -6,14 +6,30 @@ This system is built using a **Clean MVC/Services Architecture**, leveraging **M
 
 ---
 
-## 🏗️ Clean MVC-Services Architecture
+## 🏗️ Architecture (aligned with `base-backend-nodejs-master`)
 
-The project has been separated into independent, single-responsibility layers:
-* **Controllers** (`src/controllers/`): Handles Express HTTP requests/responses, validates payloads, and delegates tasks.
-* **Routes** (`src/routes/`): Sets up and organizes the routing paths and endpoint mappings.
-* **Models** (`src/models/`): Defines robust Mongoose schemas for MongoDB (`Channel`, `ActiveStream`, `StreamHistory`).
-* **Services** (`src/services/`): Houses all core business logic (YouTube API Key rotation, WebSub Hub postings, adaptive polling loops, cron-based auto-renewals, and Discord notifications).
-* **Queues & Workers** (`src/queue/`): Manages asynchronous background processing and deduplication checks via Redis.
+```txt
+src/bin/api/          → HTTP + WebSub callback only
+src/bin/worker/       → BullMQ workers
+src/bin/scheduler/    → Cron registry + polling backup
+src/app.js            → Express app
+src/infra/            → MongoDB, Redis connection config
+src/jobs/             → Cron job definitions
+src/scheduler/        → Cron registry
+src/controllers/      → HTTP handlers
+src/services/         → `*.service.js` — API / domain logic only
+src/scheduler/        → cron registry + scheduler.* modules (background)
+src/repositories/     → `*.repository.js` class + singleton
+src/queue/            → BullMQ queue producers + worker factory
+```
+
+### Run processes
+
+| Script | Process |
+|--------|---------|
+| `npm run start:api` | API Express |
+| `npm run start:worker` | BullMQ worker |
+| `npm run start:scheduler` | Cron + polling |
 
 ---
 
@@ -22,37 +38,56 @@ The project has been separated into independent, single-responsibility layers:
 ```
 ├── data/
 │   └── sample-channels.json         # Seeding channels list template
-├── logs/
-│   ├── app.log                      # Winston application audit logs
+├── logs/                            # Winston (per process, max 20MB/file, 5 rotations)
+│   ├── api.log / api.error.log
+│   ├── worker.log / worker.error.log
+│   └── scheduler.log / scheduler.error.log
 │   └── error.log                    # Critical error traces
 ├── scripts/
-│   └── import-channels.js           # CLI script to bulk seed MongoDB
+│   └── seed-admin.mongosh.js        # mongosh: seed admin user (default admin/changeme)
 ├── src/
 │   ├── config/
 │   │   └── index.js                 # Configuration loader (including MongoDB connection)
 │   ├── controllers/
 │   │   ├── channel.controller.js    # Express controller for REST Admin API
 │   │   └── webhook.controller.js    # Express controller for Google WebSub webhook
+│   ├── repositories/
+│   │   ├── channel.repository.js    # ChannelRepository
+│   │   ├── user.repository.js         # UserRepository
+│   │   ├── sponsor.repository.js      # SponsorRepository
+│   │   └── video.repository.js        # VideoRepository (reserved)
 │   ├── models/
 │   │   ├── channel.model.js         # Mongoose schema for YouTube channels
-│   │   ├── active-stream.model.js   # Mongoose schema for active polling list
-│   │   └── stream-history.model.js  # Mongoose schema for ended stream history
+│   │   └── video.model.js           # Consolidated stream/video tracking
 │   ├── queue/
-│   │   ├── index.js                 # BullMQ queue instantiator
-│   │   └── worker.js                # Queue worker routines with Redis Deduplication
+│   │   ├── channel.queue.js         # Channel BullMQ producers (webhook + WebSub)
+│   │   ├── channel.worker.js        # Channel BullMQ consumers
+│   │   ├── index.js                 # Re-exports channel.queue (API / scheduler)
+│   │   └── worker.js                # Re-exports channel.worker (worker process)
 │   ├── routes/
 │   │   ├── channel.routes.js        # REST Admin endpoints mapping
 │   │   └── webhook.routes.js        # WebSub webhook endpoints mapping
+│   ├── bin/
+│   │   ├── api/api.js               # API entrypoint
+│   │   ├── worker/worker.js         # Worker entrypoint
+│   │   └── scheduler/scheduler.js   # Scheduler entrypoint
+│   ├── infra/
+│   │   ├── mongodb.js               # DB connector
+│   │   └── redis.js                 # Redis options for BullMQ
+│   ├── jobs/
+│   │   └── channel.job.js           # cron: WebSub renew (4h) + live poll (30s)
+│   ├── scheduler/
+│   │   ├── registry.js              # Cron registry
+│   │   └── channel.scheduler.js     # WebSub + live detection (L1 worker, L2 poll)
 │   ├── services/
-│   │   ├── youtube.service.js       # Quota key-rotating YouTube Client
-│   │   ├── websub.service.js        # WebSub hub subscription posting service
-│   │   ├── polling.service.js       # Adaptive single-loop active stream poller
-│   │   ├── scheduler.service.js     # Subscription lease cron renewal engine
-│   │   └── notifier.service.js      # Discord webhook dispatcher
+│   │   ├── channel.service.js       # Channel.status + sync (API/domain)
+│   │   ├── user.service.js          # Auth: login, JWT, change password
+│   │   ├── ytb-api.service.js       # YouTube Data API v3
+│   │   └── google-api-key.service.js
 │   ├── utils/
-│   │   └── logger.js                # Winston logger configuration
-│   ├── db.js                        # MongoDB Mongoose connection manager
-│   └── server.js                    # Core Express server & systems bootstrap
+│   │   └── discord-notify.js          # Discord webhook helper (background)
+│   ├── app.js                       # Express app factory
+│   └── bin/                         # Entrypoints: api, worker, scheduler
 ├── .env                             # Local credentials file (git-ignored)
 ├── .env.example                     # Environment setup template
 ├── package.json
@@ -107,11 +142,12 @@ BASE_URL=https://xxxx.ngrok-free.app
 YOUTUBE_API_KEYS=key1,key2
 
 # Redis connection details
-REDIS_HOST=127.0.0.1
-REDIS_PORT=6379
+REDIS_URL=redis://127.0.0.1:6379
+# Upstash: REDIS_URL=rediss://default:TOKEN@endpoint.upstash.io:6379
 
-# MongoDB connection URI
-MONGO_URI=mongodb://127.0.0.1:27017/vnvtuber
+# MongoDB (Atlas: URL without db path + database name)
+MONGO_URL=mongodb://127.0.0.1:27017
+MONGO_DATABASE=vnvtuber
 ```
 
 ### 3. Expose Server Publicly (e.g. ngrok)
@@ -127,23 +163,53 @@ Import your channel lists (e.g. 2,000 channels) using the administrative CLI hel
 npm run import data/sample-channels.json
 ```
 
-### 5. Launch the Server
+### 5. Launch (3 processes)
+
+**Docker (khuyến nghị deploy):**
+
 ```bash
-npm start
+cp .env.example .env
+docker compose up -d --build
+docker compose ps
+curl http://localhost:3000/api/health
 ```
-This connects Mongoose to MongoDB, hooks to Redis, loads background workers, and boots the HTTP endpoints.
+
+| Container | Entry (`src/bin`) |
+|-----------|-------------------|
+| `vnvtuber-api` | `bin/api/api.js` |
+| `vnvtuber-worker` | `bin/worker/worker.js` |
+| `vnvtuber-scheduler` | `bin/scheduler/scheduler.js` |
+
+Deploy production: [deploy/README.md](deploy/README.md)
+
+**Local (không Docker app):**
+
+```bash
+docker compose -f docker-compose.dev.yml up -d   # chỉ Mongo + Redis
+npm run start:api
+npm run start:worker
+npm run start:scheduler
+```
 
 ---
 
+## 📊 Core API (live check)
+
+| Method | Endpoint | Auth | Mô tả |
+|--------|----------|------|--------|
+| GET | `/api/channels/live` | — | Stream live/upcoming từ DB |
+| GET | `/api/channels` | — | Danh sách kênh |
+| GET | `/api/channels/:channelId/live` | — | Một kênh (`?refresh=true`) |
+| POST | `/api/channels` | JWT | Đăng ký kênh + WebSub |
+| POST | `/api/channels/import` | JWT | Import hàng loạt |
+| POST | `/api/channels/sync` | JWT | Gia hạn WebSub |
+| GET | `/api/channels/status` | — | Metrics (dashboard) |
+
+Data model: `Channel` (metadata + `status.isLive`), `Video` (stream đang theo dõi). `channelId` trên `Video` là **String** (YouTube ID `UC...`), khớp `Channel._id`.
+
 ## 📊 Administration API endpoints
 
-The following HTTP API routes are exposed under `/api` for monitoring and system management:
-
-1. **Check Status**: `GET http://localhost:3000/api/status`
-   - Returns aggregated database figures, total channels grouped by subscription status, active streaming arrays being polled, and the latest 10 history logs.
-2. **Add Single Channel**: `POST http://localhost:3000/api/channels`
-   - Body: `{ "channelId": "UC...", "displayName": "..." }`
+1. **Check Status**: `GET http://localhost:3000/api/channels/status`
+2. **Add Single Channel**: `POST http://localhost:3000/api/channels` — Body: `{ "channelId": "UC...", "displayName": "..." }`
 3. **Import Channels Bulk**: `POST http://localhost:3000/api/channels/import`
-   - Body: `{ "channels": [ { "channelId": "UC...", "displayName": "..." } ] }`
 4. **Manual Sync Trigger**: `POST http://localhost:3000/api/channels/sync`
-   - Forces the cron scheduler to scan MongoDB for expiring or failed subscriptions, queuing them for staggered renews immediately.

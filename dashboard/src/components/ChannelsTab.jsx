@@ -1,79 +1,284 @@
-import React from 'react';
-import { Users } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Users, UserPlus, Sparkles, Layers, AlertCircle } from 'lucide-react';
+import api from '@/services/api';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DataTable } from '@/components/ui/data-table';
+import ChannelsOverviewChart from '@/components/ChannelsOverviewChart';
 
-export default function ChannelsTab({ channels }) {
+const addChannelSchema = z.object({
+  channelId: z.string().min(1, 'Channel ID bắt buộc').refine((v) => v.startsWith('UC'), 'Phải bắt đầu bằng UC'),
+  displayName: z.string().optional(),
+  type: z.enum(['independent', 'agency']),
+  agencyName: z.string().optional(),
+});
+
+export default function ChannelsTab({ channels, onRefresh, showNotice }) {
+  const [bulkData, setBulkData] = useState('');
+  const [formStatus, setFormStatus] = useState(null);
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(addChannelSchema),
+    defaultValues: { channelId: '', displayName: '', type: 'independent', agencyName: '' },
+  });
+
+  const regType = watch('type');
+
+  const columns = useMemo(
+    () => [
+      {
+        accessorKey: 'displayName',
+        header: 'Tên',
+        cell: ({ row }) => {
+          const v = row.original;
+          return (
+            <div className="flex items-center gap-3">
+              <img
+                src={
+                  v.avatarUrl ||
+                  'https://yt3.ggpht.com/uM2DMugocZu1Z45Zg6S92fW_5tWl3O8p8t19mC9S6m2_4491-b306-3f8e38d758ec'
+                }
+                alt=""
+                className="size-8 rounded-full border border-neon-purple"
+              />
+              <div>
+                <span className="block font-bold">{v.displayName}</span>
+                <span className="text-[10px] text-muted-foreground">{v.agencyName || 'Independent'}</span>
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        accessorKey: 'channelId',
+        header: 'Channel ID',
+        cell: ({ getValue }) => <span className="font-mono text-[10px] text-muted-foreground">{getValue()}</span>,
+      },
+      {
+        accessorKey: 'subscriberCount',
+        header: 'Sub',
+        cell: ({ getValue }) => {
+          const n = getValue();
+          return <span className="font-bold">{n ? `${(n / 1000).toFixed(1)}k` : '0'}</span>;
+        },
+      },
+      {
+        accessorKey: 'type',
+        header: 'Loại',
+        cell: ({ getValue }) => (
+          <Badge variant={getValue() === 'agency' ? 'default' : 'warning'}>{getValue() || 'independent'}</Badge>
+        ),
+      },
+      {
+        accessorKey: 'subscriptionStatus',
+        header: 'WebSub',
+        cell: ({ getValue }) => (
+          <Badge variant={getValue() === 'subscribed' ? 'success' : 'warning'}>{getValue()}</Badge>
+        ),
+      },
+      {
+        accessorKey: 'expiresAt',
+        header: () => <span className="block text-right">Hết hạn sub</span>,
+        cell: ({ getValue }) => (
+          <span className="block text-right font-mono text-[10px] text-muted-foreground">
+            {getValue() ? new Date(getValue()).toLocaleDateString() : '—'}
+          </span>
+        ),
+      },
+    ],
+    [],
+  );
+
+  const onSubmit = async (values) => {
+    setFormStatus({ type: 'loading', message: 'Đang đăng ký kênh...' });
+    try {
+      const { ok, error } = await api.addChannel(
+        values.channelId.trim(),
+        (values.displayName || '').trim(),
+        values.type,
+        values.type === 'agency' ? (values.agencyName || '').trim() : '',
+      );
+
+      if (ok) {
+        showNotice('success', `Đã đăng ký kênh: ${values.channelId.trim()}`);
+        reset();
+        setFormStatus(null);
+        onRefresh();
+      } else {
+        setFormStatus({ type: 'error', message: error || 'Đăng ký thất bại.' });
+      }
+    } catch {
+      setFormStatus({ type: 'error', message: 'Lỗi kết nối máy chủ.' });
+    }
+  };
+
+  const handleBulkImport = async (e) => {
+    e.preventDefault();
+    if (!bulkData.trim()) return;
+
+    setFormStatus({ type: 'loading', message: 'Đang import...' });
+    try {
+      let channelsList = [];
+      const trimmed = bulkData.trim();
+
+      if (trimmed.startsWith('[')) {
+        try {
+          channelsList = JSON.parse(trimmed);
+        } catch {
+          setFormStatus({ type: 'error', message: 'JSON không hợp lệ.' });
+          return;
+        }
+      } else {
+        channelsList = trimmed
+          .split('\n')
+          .map((line) => {
+            const parts = line.split(',');
+            return {
+              channelId: parts[0]?.trim(),
+              displayName: parts[1]?.trim() || '',
+              type: parts[2]?.trim() || 'independent',
+              agencyName: parts[3]?.trim() || '',
+            };
+          })
+          .filter((c) => c.channelId?.startsWith('UC'));
+      }
+
+      if (channelsList.length === 0) {
+        setFormStatus({ type: 'error', message: 'Không có Channel ID hợp lệ (UC...).' });
+        return;
+      }
+
+      const { ok, message, error } = await api.importChannels(channelsList);
+
+      if (ok) {
+        showNotice('success', message || `Import ${channelsList.length} kênh thành công.`);
+        setBulkData('');
+        setFormStatus(null);
+        onRefresh();
+      } else {
+        setFormStatus({ type: 'error', message: error || 'Import thất bại.' });
+      }
+    } catch {
+      setFormStatus({ type: 'error', message: 'Lỗi kết nối máy chủ.' });
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Users className="w-6 h-6 text-neon-cyan" />
-            Mạng Lưới Kênh VTuber Việt Nam
-          </h2>
-          <p className="text-zinc-400 text-sm mt-1">Danh sách VTuber hiện đang được hệ thống giám sát và đăng ký WebSub với Google Hub.</p>
-        </div>
+    <div className="space-y-8">
+      <div>
+        <h2 className="flex items-center gap-2 text-2xl font-bold">
+          <Users className="size-6 text-neon-cyan" />
+          Kênh VTuber
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">Danh sách kênh, đăng ký WebSub và thêm kênh mới.</p>
       </div>
 
-      {/* Database Table list */}
-      <div className="glass rounded-3xl overflow-hidden shadow-2xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-[#291e4a] text-zinc-400 font-extrabold uppercase tracking-wider text-[10px]">
-                <th className="py-4 px-6">Talent Name</th>
-                <th className="py-4 px-6">Channel ID</th>
-                <th className="py-4 px-6">Lượt Sub</th>
-                <th className="py-4 px-6">Số Video</th>
-                <th className="py-4 px-6">Hình thức</th>
-                <th className="py-4 px-6">WebSub Status</th>
-                <th className="py-4 px-6 text-right">Lượt quét tiếp theo</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#1e153a]/40">
-              {channels.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-10 text-zinc-500">Chưa có VTuber nào được đăng ký trong hệ thống.</td>
-                </tr>
-              ) : (
-                channels.map(v => (
-                  <tr key={v.channelId} className="hover:bg-[#1a1134]/30 transition-colors">
-                    <td className="py-4 px-6 flex items-center gap-3">
-                      <img src={v.avatarUrl || "https://yt3.ggpht.com/uM2DMugocZu1Z45Zg6S92fW_5tWl3O8p8t19mC9S6m2_4491-b306-3f8e38d758ec"} alt={v.displayName} className="w-8 h-8 rounded-full border border-neon-purple" />
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-bold text-zinc-100">{v.displayName}</span>
-                        <span className="text-[10px] text-zinc-500 font-semibold">{v.agencyName || 'Independent'}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 font-mono text-[10px] text-zinc-400">{v.channelId}</td>
-                    <td className="py-4 px-6 font-bold text-zinc-200">{v.subscriberCount ? `${(v.subscriberCount / 1000).toFixed(1)}k` : '0'}</td>
-                    <td className="py-4 px-6 text-zinc-400">{v.videoCount || 0}</td>
-                    <td className="py-4 px-6">
-                      {v.type === 'agency' ? (
-                        <span className="px-2 py-0.5 rounded bg-neon-purple/10 text-neon-purple border border-neon-purple/20 text-[9px] font-extrabold uppercase">AGENCY</span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded bg-neon-pink/10 text-neon-pink border border-neon-pink/20 text-[9px] font-extrabold uppercase">INDEPENDENT</span>
-                      )}
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className={`px-2 py-0.5 rounded border text-[9px] font-extrabold uppercase flex items-center w-fit gap-1 ${
-                        v.subscriptionStatus === 'subscribed'
-                          ? 'bg-neon-green/10 text-neon-green border-neon-green/20'
-                          : 'bg-neon-pink/10 text-neon-pink border-neon-pink/20'
-                      }`}>
-                        <span className={`w-1 h-1 rounded-full ${v.subscriptionStatus === 'subscribed' ? 'bg-neon-green' : 'bg-neon-pink'}`} />
-                        {v.subscriptionStatus}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-right font-mono text-zinc-500 text-[10px]">
-                      {v.expiresAt ? new Date(v.expiresAt).toLocaleDateString() : 'Chưa thiết lập'}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      <ChannelsOverviewChart channels={channels} />
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Sparkles className="size-4 text-neon-purple" />
+              Thêm một kênh
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="channelId">Channel ID</Label>
+                <Input id="channelId" placeholder="UC..." {...register('channelId')} />
+                {errors.channelId && <p className="text-xs text-destructive">{errors.channelId.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="displayName">Tên hiển thị</Label>
+                <Input id="displayName" placeholder="Tùy chọn" {...register('displayName')} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Loại</Label>
+                  <Select value={regType} onValueChange={(v) => setValue('type', v)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="independent">Independent</SelectItem>
+                      <SelectItem value="agency">Agency</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {regType === 'agency' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="agencyName">Agency</Label>
+                    <Input id="agencyName" {...register('agencyName')} />
+                  </div>
+                )}
+              </div>
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                <UserPlus />
+                Đăng ký kênh
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Layers className="size-4 text-neon-cyan" />
+              Import hàng loạt
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleBulkImport} className="space-y-3">
+              <Textarea
+                rows={5}
+                placeholder={'UCxxx, Tên, independent\nHoặc JSON: [{"channelId":"UC..."}]'}
+                value={bulkData}
+                onChange={(e) => setBulkData(e.target.value)}
+                className="font-mono"
+              />
+              <Button type="submit" variant="secondary" className="w-full bg-gradient-to-r from-neon-cyan/80 to-neon-purple/80 text-white">
+                Import
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
+
+      {formStatus && (
+        <Alert variant={formStatus.type === 'error' ? 'destructive' : 'default'}>
+          <AlertCircle className="size-4" />
+          <AlertDescription>{formStatus.message}</AlertDescription>
+        </Alert>
+      )}
+
+      <Card className="p-6">
+        <DataTable
+          columns={columns}
+          data={channels}
+          searchKey="displayName"
+          searchPlaceholder="Tìm kênh..."
+          emptyMessage="Chưa có kênh nào."
+          pageSize={10}
+        />
+      </Card>
     </div>
   );
 }

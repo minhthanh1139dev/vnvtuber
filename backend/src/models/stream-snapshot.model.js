@@ -1,11 +1,14 @@
+/**
+ * Reserved for future viewer charts — disabled (see ENABLE_STREAM_SNAPSHOTS, unused in MVP).
+ */
 const mongoose = require("mongoose");
 
 const streamSnapshotSchema = new mongoose.Schema(
   {
     videoId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Video",
+      type: String,
       required: true,
+      trim: true,
     },
     timestamp: {
       type: Date,

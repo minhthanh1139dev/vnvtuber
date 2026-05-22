@@ -1,0 +1,15 @@
+# Production — pull image from registry (built by CI), skip local build:
+#
+#   export DOCKER_IMAGE=ghcr.io/<owner>/vnvtuber-backend:latest
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build
+
+services:
+  api:
+    image: ${DOCKER_IMAGE:?Set DOCKER_IMAGE e.g. ghcr.io/user/vnvtuber-backend:latest}
+
+  worker:
+    image: ${DOCKER_IMAGE:?Set DOCKER_IMAGE}
+
+  scheduler:
+    image: ${DOCKER_IMAGE:?Set DOCKER_IMAGE}

@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "start": "node src/server.js",
-    "import": "node scripts/import-channels.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/bin/api/api.js",
+    "start:api": "node src/bin/api/api.js",
+    "start:worker": "node src/bin/worker/worker.js",
+    "start:scheduler": "node src/bin/scheduler/scheduler.js",
+    "test": "node --test test/**/*.test.js"
   },
   "keywords": [],
   "author": "",
@@ -15,11 +17,18 @@
     "axios": "^1.16.1",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.76.10",
+    "compression": "^1.8.1",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-async-handler": "^1.2.0",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.1.0",
+    "http-status-codes": "^2.3.0",
     "ioredis": "^5.10.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.6.2",
+    "morgan": "^1.10.1",
     "node-cron": "^4.2.1",
     "winston": "^3.19.0",
     "xml2js": "^0.6.2"

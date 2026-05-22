@@ -1,8 +1,15 @@
 const mongoose = require("mongoose");
 
+const socialLinkSchema = new mongoose.Schema(
+  {
+    network: { type: String, required: true, trim: true },
+    url: { type: String, required: true, trim: true },
+  },
+  { _id: false }
+);
+
 const channelSchema = new mongoose.Schema(
   {
-    // Natural key matching the YouTube Channel ID (e.g. UC_x5XG1OV...)
     _id: {
       type: String,
       required: true,
@@ -13,20 +20,7 @@ const channelSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
-    englishName: {
-      type: String,
-      trim: true,
-      default: "",
-    },
     avatarUrl: {
-      type: String,
-      default: "",
-    },
-    banner: {
-      type: String,
-      default: "",
-    },
-    description: {
       type: String,
       default: "",
     },
@@ -40,23 +34,11 @@ const channelSchema = new mongoose.Schema(
       enum: ["independent", "agency"],
       default: "independent",
     },
-    agencyName: {
-      type: String,
-      default: "",
-    },
-    branch: {
-      type: String,
-      default: "", // e.g. "Hololive EN", "VNvtuber Group"
-    },
-    generation: {
-      type: String,
-      default: "", // Generation tag
-    },
     socials: {
-      twitter: { type: String, default: "" },
-      twitch: { type: String, default: "" },
+      type: [socialLinkSchema],
+      default: [],
     },
-    // Embed live/upcoming status inside channels for ultra-fast landing page reads
+    /** Live state — updated by WebSub worker + light polling (no separate Video collection required). */
     status: {
       isLive: {
         type: Boolean,
@@ -66,9 +48,38 @@ const channelSchema = new mongoose.Schema(
         type: String,
         default: null,
       },
+      liveTitle: {
+        type: String,
+        default: "",
+      },
+      liveThumbnail: {
+        type: String,
+        default: "",
+      },
+      livePhase: {
+        type: String,
+        enum: ["live", "upcoming"],
+        default: null,
+      },
+      scheduledStartAt: {
+        type: Date,
+        default: null,
+      },
+      startedAt: {
+        type: Date,
+        default: null,
+      },
       lastLiveAt: {
         type: Date,
         default: null,
+      },
+      lastPolledAt: {
+        type: Date,
+        default: null,
+      },
+      pollErrorCount: {
+        type: Number,
+        default: 0,
       },
     },
     subscriberCount: {
@@ -83,27 +94,19 @@ const channelSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    isCommunityApproved: {
-      type: Boolean,
-      default: true,
-    },
+    /** null = main channel; UC... = parent when this row is an alt channel */
     parentChannelId: {
       type: String,
       default: null,
     },
-    streamFrequencyRank: {
-      type: Number,
-      default: 0,
-    },
-    lastActiveAt: {
+    lastScrapeAt: {
       type: Date,
       default: null,
     },
-    // Google PubSubHubbub subscription details
     subscriptionStatus: {
       type: String,
       enum: ["unsubscribed", "pending", "subscribed", "failed"],
-      default: "unsubscribed",
+      default: "pending",
     },
     subscribedAt: {
       type: Date,
@@ -124,10 +127,13 @@ const channelSchema = new mongoose.Schema(
   }
 );
 
-// Indexes (Holodex optimized)
 channelSchema.index({ "status.isLive": 1 });
+channelSchema.index({ "status.livePhase": 1 });
+channelSchema.index({ "status.currentLiveVideoId": 1 });
 channelSchema.index({ organizationId: 1 });
 channelSchema.index({ expiresAt: 1 });
 channelSchema.index({ subscriptionStatus: 1 });
+channelSchema.index({ lastScrapeAt: 1 });
+channelSchema.index({ type: 1 });
 
 module.exports = mongoose.model("Channel", channelSchema);

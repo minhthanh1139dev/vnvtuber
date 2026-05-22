@@ -1,0 +1,48 @@
+name: Backend Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-deploy.yml"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ vars.ENABLE_BACKEND_DEPLOY == 'true' }}
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy server manifests to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          source: "backend/deploy/server/docker-compose.yml,backend/deploy/server/deploy.sh"
+          target: ${{ secrets.DEPLOY_PATH }}
+          strip_components: 3
+
+      - name: Pull image and restart (no app source on server)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.DEPLOY_PATH }}"
+            chmod +x deploy.sh 2>/dev/null || true
+            export DOCKER_IMAGE=ghcr.io/${{ github.repository }}/vnvtuber-backend:latest
+            if [[ -f .env ]]; then set -a && source .env && set +a; fi
+            export DOCKER_IMAGE="${DOCKER_IMAGE:-ghcr.io/${{ github.repository }}/vnvtuber-backend:latest}"
+            docker compose pull
+            docker compose up -d --remove-orphans
+            docker compose ps
+            curl -fsS "http://127.0.0.1:${API_PORT:-3000}/api/health" || true

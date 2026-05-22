@@ -61,3 +61,47 @@
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
+
+/* Premium Supporter Themes */
+.theme-sakura, .theme-sakura body {
+  --color-brand-bg: #0f060b;
+  --color-brand-card: rgba(28, 12, 20, 0.6);
+  --color-brand-border: rgba(236, 72, 153, 0.2);
+  --color-brand-border-hover: rgba(236, 72, 153, 0.45);
+  
+  --color-neon-purple: #db2777;
+  --color-neon-pink: #f472b6;
+  --color-neon-cyan: #fda4af;
+  background-image: 
+    radial-gradient(circle at 15% 15%, rgba(98, 15, 50, 0.4) 0%, transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(60, 10, 30, 0.3) 0%, transparent 45%) !important;
+}
+
+.theme-matcha, .theme-matcha body {
+  --color-brand-bg: #050805;
+  --color-brand-card: rgba(12, 24, 12, 0.6);
+  --color-brand-border: rgba(34, 197, 94, 0.2);
+  --color-brand-border-hover: rgba(34, 197, 94, 0.45);
+  
+  --color-neon-purple: #16a34a;
+  --color-neon-pink: #a3e635;
+  --color-neon-cyan: #2dd4bf;
+  background-image: 
+    radial-gradient(circle at 15% 15%, rgba(15, 61, 20, 0.4) 0%, transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(10, 45, 12, 0.3) 0%, transparent 45%) !important;
+}
+
+.theme-midnight, .theme-midnight body {
+  --color-brand-bg: #020617;
+  --color-brand-card: rgba(15, 23, 42, 0.6);
+  --color-brand-border: rgba(59, 130, 246, 0.2);
+  --color-brand-border-hover: rgba(59, 130, 246, 0.45);
+  
+  --color-neon-purple: #2563eb;
+  --color-neon-pink: #6366f1;
+  --color-neon-cyan: #38bdf8;
+  background-image: 
+    radial-gradient(circle at 15% 15%, rgba(15, 23, 61, 0.4) 0%, transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(10, 15, 45, 0.3) 0%, transparent 45%) !important;
+}
+

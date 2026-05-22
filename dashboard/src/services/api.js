@@ -1,5 +1,15 @@
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
+function unwrapApiData(body) {
+  if (body && body.status === "success") return body.data;
+  return body;
+}
+
+function getApiErrorMessage(body, fallback = "Request failed") {
+  if (body?.status === "error" && body?.message) return body.message;
+  return fallback;
+}
+
 let token = localStorage.getItem('admin_token') || '';
 let onUnauthorizedCallback = null;
 
@@ -78,62 +88,136 @@ const api = {
       method: 'POST',
       body: JSON.stringify({ username, password })
     });
-    const data = await res.json();
+    const body = await res.json();
     if (res.ok) {
-      this.setToken(data.token);
-      this.setProfile(data.user);
+      const payload = unwrapApiData(body) || {};
+      this.setToken(payload.token);
+      this.setProfile(payload.user);
     }
-    return { ok: res.ok, data };
+    const payload = res.ok ? unwrapApiData(body) : null;
+    return { ok: res.ok, data: payload, raw: body, error: getApiErrorMessage(body) };
   },
 
-  async setupAdmin(username, password) {
-    const res = await this.request('/api/auth/setup', {
+  async changePassword(currentPassword, newPassword) {
+    const res = await this.request('/api/auth/change-password', {
       method: 'POST',
-      body: JSON.stringify({ username, password, displayName: 'Super Admin' })
+      body: JSON.stringify({ currentPassword, newPassword })
     });
-    const data = await res.json();
-    return { ok: res.ok, data };
+    const body = await res.json();
+    return {
+      ok: res.ok,
+      data: res.ok ? unwrapApiData(body) : null,
+      raw: body,
+      error: getApiErrorMessage(body),
+      message: body?.message,
+    };
   },
 
   // Status & Channels Data
   async getStatus() {
-    const res = await this.request('/api/vtubers/status');
-    return res.json();
+    const res = await this.request('/api/channels/status');
+    const body = await res.json();
+    return unwrapApiData(body) ?? body;
   },
 
   async getChannels() {
-    const res = await this.request('/api/vtubers');
-    return res.json();
+    const res = await this.request('/api/channels?limit=100&sort=popular');
+    const body = await res.json();
+    const payload = unwrapApiData(body) ?? body;
+    return Array.isArray(payload) ? payload : [];
   },
 
   // Admin Actions
   async syncWebSub() {
-    const res = await this.request('/api/vtubers/sync-subscriptions', {
+    const res = await this.request('/api/channels/sync', {
       method: 'POST'
     });
     return res;
   },
 
-  async addChannel(channelId, displayName, type, agencyName) {
-    const res = await this.request('/api/vtubers/add', {
+  async addChannel(channelId, displayName, type, parentChannelId = null) {
+    const res = await this.request('/api/channels', {
       method: 'POST',
       body: JSON.stringify({
         channelId,
         displayName,
         type,
-        agencyName
+        parentChannelId,
       })
     });
-    return { ok: res.ok, data: await res.json() };
+    const body = await res.json();
+    return {
+      ok: res.ok,
+      data: body,
+      message: body?.message,
+      error: getApiErrorMessage(body),
+    };
   },
 
   async importChannels(channelsList) {
-    const res = await this.request('/api/vtubers/import', {
+    const res = await this.request('/api/channels/import', {
       method: 'POST',
       body: JSON.stringify({ channels: channelsList })
     });
-    return { ok: res.ok, data: await res.json() };
-  }
+    const body = await res.json();
+    return {
+      ok: res.ok,
+      data: body,
+      message: body?.message,
+      error: getApiErrorMessage(body),
+    };
+  },
+
+  async getGoogleApiKeys() {
+    const res = await this.request('/api/google-api-keys');
+    const body = await res.json();
+    const list = res.ok ? unwrapApiData(body) : null;
+    return {
+      ok: res.ok,
+      list: Array.isArray(list) ? list : [],
+      meta: body?.meta ?? {},
+      error: getApiErrorMessage(body),
+    };
+  },
+
+  async createGoogleApiKey(key) {
+    const res = await this.request('/api/google-api-keys', {
+      method: 'POST',
+      body: JSON.stringify({ key }),
+    });
+    const body = await res.json();
+    return {
+      ok: res.ok,
+      data: res.ok ? unwrapApiData(body) : null,
+      error: getApiErrorMessage(body),
+    };
+  },
+
+  async updateGoogleApiKey(id, payload) {
+    const res = await this.request(`/api/google-api-keys/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    const body = await res.json();
+    return {
+      ok: res.ok,
+      data: res.ok ? unwrapApiData(body) : null,
+      error: getApiErrorMessage(body),
+    };
+  },
+
+  async deleteGoogleApiKey(id) {
+    const res = await this.request(`/api/google-api-keys/${id}`, {
+      method: 'DELETE',
+    });
+    const body = await res.json().catch(() => ({}));
+    return {
+      ok: res.ok,
+      error: getApiErrorMessage(body),
+    };
+  },
 };
+
+export { unwrapApiData, getApiErrorMessage };
 
 export default api;

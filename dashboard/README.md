@@ -1,16 +1,34 @@
-# React + Vite
+# VNVtuber Admin Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite admin UI. Requires backend API and JWT login.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Tailwind CSS v4** + **shadcn/ui** (Radix primitives, components in `src/components/ui/`)
+- **TanStack Query** — fetch/cache API
+- **TanStack Table** — CRUD tables (sort, filter, pagination via `DataTable`)
+- **React Hook Form + Zod** — forms & validation
+- **Recharts** — channel overview chart
 
-## React Compiler
+## Tabs
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Kênh** — danh sách, thêm kênh, import hàng loạt (`POST /api/channels`, `/api/channels/import`), đồng bộ WebSub (header)
+- **Google API Key** — CRUD pool YouTube Data API keys (`/api/google-api-keys`)
 
-## Expanding the ESLint configuration
+## Dev
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+cd dashboard
+npm install
+npm run dev
+```
+
+Set `VITE_BACKEND_URL=http://localhost:3000` if the API is not on the default host.
+
+### Thêm shadcn component (tùy chọn)
+
+```bash
+npx shadcn@latest add dropdown-menu form
+```
+
+Alias `@/` → `src/` (xem `components.json`, `vite.config.js`).

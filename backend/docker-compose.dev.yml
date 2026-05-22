@@ -1,0 +1,32 @@
+# Local dev — only MongoDB + Redis (run bin processes on host)
+#
+#   docker compose -f docker-compose.dev.yml up -d
+#   cp .env.example .env  → MONGO_URL, MONGO_DATABASE, REDIS_HOST=127.0.0.1
+#   npm run start:api
+#   npm run start:worker
+#   npm run start:scheduler
+
+name: vnvtuber-dev
+
+services:
+  mongodb:
+    image: mongo:7-jammy
+    container_name: vnvtuber-mongodb-dev
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_dev_data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: vnvtuber-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+
+volumes:
+  mongodb_dev_data:
+  redis_dev_data:

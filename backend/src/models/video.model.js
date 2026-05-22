@@ -1,3 +1,6 @@
+/**
+ * Reserved for future history / analytics — MVP uses Channel.status only.
+ */
 const mongoose = require("mongoose");
 
 const videoSchema = new mongoose.Schema(
@@ -9,7 +12,7 @@ const videoSchema = new mongoose.Schema(
       trim: true,
     },
     channelId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: String,
       ref: "Channel",
       required: true,
     },
@@ -77,7 +80,7 @@ const videoSchema = new mongoose.Schema(
       type: [
         {
           channelId: {
-            type: mongoose.Schema.Types.ObjectId,
+            type: String,
             ref: "Channel",
           },
           name: {

@@ -22,7 +22,6 @@ const organizationSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
-
     website: {
       type: String,
       default: "",
@@ -31,7 +30,7 @@ const organizationSchema = new mongoose.Schema(
   {
     timestamps: true,
     versionKey: false,
-  }
+  },
 );
 
 // Indexes

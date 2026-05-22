@@ -7,9 +7,10 @@ let vtubers = [];
 const BACKEND_URL = import.meta.env.PUBLIC_BACKEND_URL || "http://localhost:3000";
 
 try {
-  const res = await fetch(`${BACKEND_URL}/api/vtubers`);
+  const res = await fetch(`${BACKEND_URL}/api/channels?limit=200&sort=popular`);
   if (res.ok) {
-    vtubers = await res.json();
+    const body = await res.json();
+    vtubers = Array.isArray(body?.data) ? body.data : body ?? [];
   }
 } catch (err) {
   console.log("Could not fetch VTubers during static generation, using fallback mock data.");
@@ -24,8 +25,7 @@ try {
       viewCount: 412000000,
       videoCount: 382,
       type: "agency",
-      agencyName: "Hololive",
-      streamFrequencyRank: 5,
+      socials: [],
       createdAt: new Date().toISOString()
     },
     {
@@ -37,8 +37,7 @@ try {
       viewCount: 1200000,
       videoCount: 95, // Under 100 -> New Channel tag
       type: "independent",
-      agencyName: "",
-      streamFrequencyRank: 8,
+      socials: [],
       createdAt: new Date().toISOString()
     }
   ];
@@ -55,19 +54,19 @@ try {
       Mạng Lưới <span class="bg-gradient-to-r from-neon-purple to-neon-pink bg-clip-text text-transparent">VTuber Việt Nam</span>
     </h1>
     
-    <p className="text-zinc-400 text-sm sm:text-base max-w-xl leading-relaxed mb-8 px-4">
+    <p class="text-zinc-400 text-sm sm:text-base max-w-xl leading-relaxed mb-8 px-4">
       Hệ thống tổng hợp, giám sát livestream 24/7 thời gian thực và danh sách kết nối cộng đồng VTuber Việt Nam.
     </p>
 
     <!-- Micro-stat card -->
-    <div className="flex gap-4">
-      <div className="glass px-6 py-2.5 rounded-xl flex items-center gap-2">
-        <span className="w-1.5 h-1.5 rounded-full bg-neon-purple shadow-[0_0_8px_#a855f7]" />
-        <span className="text-xs font-bold text-zinc-300"><strong className="text-white">{vtubers.length}</strong> VTubers</span>
+    <div class="flex gap-4">
+      <div class="glass px-6 py-2.5 rounded-xl flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-neon-purple shadow-[0_0_8px_#a855f7]"></span>
+        <span class="text-xs font-bold text-zinc-300"><strong class="text-white">{vtubers.length}</strong> VTubers</span>
       </div>
-      <div className="glass px-6 py-2.5 rounded-xl flex items-center gap-2">
-        <span className="w-1.5 h-1.5 rounded-full bg-neon-red shadow-[0_0_8px_#ef4444] animate-ping" />
-        <span className="text-xs font-bold text-zinc-300">Live WebSub Ready</span>
+      <div class="glass px-6 py-2.5 rounded-xl flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-neon-red shadow-[0_0_8px_#ef4444] animate-ping"></span>
+        <span class="text-xs font-bold text-zinc-300">Live WebSub Ready</span>
       </div>
     </div>
   </section>
