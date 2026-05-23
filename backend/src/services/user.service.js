@@ -60,9 +60,13 @@ class UserService {
 
   signAccessToken(user) {
     this.assertJwtConfigured();
-    return jwt.sign({ userId: user._id, role: user.role }, this.getJwtSecret(), {
-      expiresIn: "7d",
-    });
+    return jwt.sign(
+      { userId: user._id, role: user.role },
+      this.getJwtSecret(),
+      {
+        expiresIn: "7d",
+      },
+    );
   }
 
   verifyAccessToken(token) {
@@ -74,7 +78,6 @@ class UserService {
     const user = await this.authenticate(username, password);
     await userRepository.updateLastLogin(user);
     const token = this.signAccessToken(user);
-    logger.info(`[AUTH] Admin user '${user.username}' successfully logged in.`);
     return { token, user: this.toPublicProfile(user) };
   }
 
@@ -118,7 +121,7 @@ class UserService {
 
     user.password = newPassword;
     await user.save();
-    logger.info(`[AUTH] Admin user '${user.username}' changed password successfully.`);
+    logger.debug(`[AUTH] Admin user '${user.username}' changed password.`);
   }
 }
 

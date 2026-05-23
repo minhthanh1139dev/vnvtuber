@@ -8,7 +8,7 @@ const config = require("../config");
 const channelRepository = require("../repositories/channel.repository");
 const channelService = require("../services/channel.service");
 const ytbApiService = require("../services/ytb-api.service");
-const queueManager = require("../queue");
+const channelProducer = require("../queue/channel.producer");
 const {
   notifyStreamStartedOnDiscord,
   notifyStreamEndedOnDiscord,
@@ -122,7 +122,7 @@ class ChannelScheduler {
 
         setTimeout(async () => {
           logger.info(`${LOG} WebSub queue renewal ${displayName || channelId} (${status})`);
-          await queueManager.queueSubscriptionJob(channelId, "subscribe");
+          await channelProducer.queueSubscriptionJob(channelId, "subscribe");
         }, delay);
 
         delay += staggerDelay;

@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const organizationSchema = new mongoose.Schema(
+const projectSchema = new mongoose.Schema(
   {
     name: {
       type: String,
@@ -33,7 +33,6 @@ const organizationSchema = new mongoose.Schema(
   },
 );
 
-// Indexes
-organizationSchema.index({ shortName: 1 });
+projectSchema.index({ shortName: 1 });
 
-module.exports = mongoose.model("Organization", organizationSchema);
+module.exports = mongoose.model("Project", projectSchema);

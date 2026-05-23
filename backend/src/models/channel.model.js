@@ -24,9 +24,9 @@ const channelSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
-    organizationId: {
+    projectId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Organization",
+      ref: "Project",
       default: null,
     },
     type: {
@@ -130,7 +130,7 @@ const channelSchema = new mongoose.Schema(
 channelSchema.index({ "status.isLive": 1 });
 channelSchema.index({ "status.livePhase": 1 });
 channelSchema.index({ "status.currentLiveVideoId": 1 });
-channelSchema.index({ organizationId: 1 });
+channelSchema.index({ projectId: 1 });
 channelSchema.index({ expiresAt: 1 });
 channelSchema.index({ subscriptionStatus: 1 });
 channelSchema.index({ lastScrapeAt: 1 });

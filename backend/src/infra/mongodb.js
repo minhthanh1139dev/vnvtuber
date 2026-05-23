@@ -4,10 +4,6 @@ const mongoose = require("mongoose");
 const config = require("../config");
 const logger = require("../utils/logger");
 
-function redactUrl(url) {
-  return url.replace(/\/\/([^@/]+)@/, "//***@");
-}
-
 class MongoDB {
   constructor() {
     this.connected = false;
@@ -19,10 +15,14 @@ class MongoDB {
     }
 
     const { url, database } = config.mongo;
-    logger.info(`MongoDB → ${redactUrl(url)} (db: ${database})`);
     await mongoose.connect(url, { dbName: database });
     this.connected = true;
-    logger.info("MongoDB connected.");
+    const msg = `MongoDB connected (db: ${database})`;
+    if (process.env.LOG_PROCESS === "api") {
+      logger.debug(msg);
+    } else {
+      logger.info(msg);
+    }
     return mongoose.connection;
   }
 
@@ -30,7 +30,7 @@ class MongoDB {
     if (!this.connected) return;
     await mongoose.disconnect();
     this.connected = false;
-    logger.info("MongoDB disconnected.");
+    logger.debug("MongoDB disconnected.");
   }
 }
 

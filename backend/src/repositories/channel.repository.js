@@ -3,7 +3,7 @@
 const Channel = require("../models/channel.model");
 
 const LIST_PROJECTION =
-  "displayName avatarUrl subscriberCount viewCount videoCount type parentChannelId socials organizationId status createdAt";
+  "displayName avatarUrl subscriberCount viewCount videoCount type parentChannelId socials projectId status createdAt";
 
 const LIVE_PROJECTION =
   "displayName avatarUrl type parentChannelId status";

@@ -1,24 +1,22 @@
 process.env.LOG_PROCESS = "worker";
 
-const { mongo } = require("../../infra");
+const mongo = require("../../infra/mongodb");
 const googleApiKeyService = require("../../services/google-api-key.service");
+const channelProducer = require("../../queue/channel.producer");
+const channelConsumer = require("../../queue/channel.consumer");
 const logger = require("../../utils/logger");
-
-let closeWorkers;
 
 async function bootstrap() {
   await mongo.connect();
   await googleApiKeyService.initialize();
 
-  // Workers start on require (after DB is ready)
-  ({ closeChannelWorkers: closeWorkers } = require("../../queue/channel.worker"));
-
-  logger.info("[WORKER] Process running — consuming BullMQ queues");
+  channelConsumer.start(channelProducer.connection);
+  logger.info("[WORKER] Ready — consuming BullMQ queues");
 }
 
 async function gracefulShutdown(signal) {
   logger.info(`[WORKER] ${signal} received — shutting down...`);
-  if (closeWorkers) await closeWorkers();
+  await channelConsumer.close();
   await mongo.close();
   process.exit(0);
 }

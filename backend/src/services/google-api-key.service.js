@@ -69,7 +69,7 @@ class GoogleApiKeyService {
     }
 
     if (imported > 0) {
-      logger.info(`[GOOGLE API KEY] Imported ${imported} key(s) from YOUTUBE_API_KEYS env`);
+      logger.debug(`[GOOGLE API KEY] Imported ${imported} key(s) from YOUTUBE_API_KEYS env`);
     }
     return imported;
   }
@@ -84,8 +84,8 @@ class GoogleApiKeyService {
         "[GOOGLE API KEY] No active keys in database. Add via POST /api/google-api-keys or YOUTUBE_API_KEYS on first boot."
       );
     } else {
-      logger.info(
-        `[GOOGLE API KEY] Ready: ${this._activeCount} active key(s), pick lowest requestCount`
+      logger.debug(
+        `[GOOGLE API KEY] Ready: ${this._activeCount} active key(s), pick lowest requestCount`,
       );
     }
   }

@@ -9,10 +9,9 @@ This system is built using a **Clean MVC/Services Architecture**, leveraging **M
 ## 🏗️ Architecture (aligned with `base-backend-nodejs-master`)
 
 ```txt
-src/bin/api/          → HTTP + WebSub callback only
+src/bin/api/          → HTTP + WebSub callback (Express app + bootstrap)
 src/bin/worker/       → BullMQ workers
 src/bin/scheduler/    → Cron registry + polling backup
-src/app.js            → Express app
 src/infra/            → MongoDB, Redis connection config
 src/jobs/             → Cron job definitions
 src/scheduler/        → Cron registry
@@ -20,7 +19,7 @@ src/controllers/      → HTTP handlers
 src/services/         → `*.service.js` — API / domain logic only
 src/scheduler/        → cron registry + scheduler.* modules (background)
 src/repositories/     → `*.repository.js` class + singleton
-src/queue/            → BullMQ queue producers + worker factory
+src/queue/            → channel.producer (enqueue) + channel.consumer (worker bin)
 ```
 
 ### Run processes
@@ -38,11 +37,10 @@ src/queue/            → BullMQ queue producers + worker factory
 ```
 ├── data/
 │   └── sample-channels.json         # Seeding channels list template
-├── logs/                            # Winston (per process, max 20MB/file, 5 rotations)
+├── logs/                            # api|worker|scheduler × (.log + .error.log); >50MB → rename .bak, keep 3 backups each
 │   ├── api.log / api.error.log
 │   ├── worker.log / worker.error.log
 │   └── scheduler.log / scheduler.error.log
-│   └── error.log                    # Critical error traces
 ├── scripts/
 │   └── seed-admin.mongosh.js        # mongosh: seed admin user (default admin/changeme)
 ├── src/
@@ -60,10 +58,8 @@ src/queue/            → BullMQ queue producers + worker factory
 │   │   ├── channel.model.js         # Mongoose schema for YouTube channels
 │   │   └── video.model.js           # Consolidated stream/video tracking
 │   ├── queue/
-│   │   ├── channel.queue.js         # Channel BullMQ producers (webhook + WebSub)
-│   │   ├── channel.worker.js        # Channel BullMQ consumers
-│   │   ├── index.js                 # Re-exports channel.queue (API / scheduler)
-│   │   └── worker.js                # Re-exports channel.worker (worker process)
+│   │   ├── channel.producer.js      # Enqueue webhook / WebSub jobs (API, scheduler)
+│   │   └── channel.consumer.js      # BullMQ workers (worker bin only)
 │   ├── routes/
 │   │   ├── channel.routes.js        # REST Admin endpoints mapping
 │   │   └── webhook.routes.js        # WebSub webhook endpoints mapping
@@ -86,8 +82,7 @@ src/queue/            → BullMQ queue producers + worker factory
 │   │   └── google-api-key.service.js
 │   ├── utils/
 │   │   └── discord-notify.js          # Discord webhook helper (background)
-│   ├── app.js                       # Express app factory
-│   └── bin/                         # Entrypoints: api, worker, scheduler
+│   └── bin/                         # Entrypoints: api (Express), worker, scheduler
 ├── .env                             # Local credentials file (git-ignored)
 ├── .env.example                     # Environment setup template
 ├── package.json

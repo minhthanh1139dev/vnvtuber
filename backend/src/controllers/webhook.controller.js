@@ -2,7 +2,7 @@
 
 const xml2js = require("xml2js");
 const channelScheduler = require("../scheduler/channel.scheduler");
-const queueManager = require("../queue");
+const channelProducer = require("../queue/channel.producer");
 const logger = require("../utils/logger");
 const { wrapController } = require("../utils/asyncHandler");
 
@@ -70,7 +70,7 @@ class WebhookController {
       `[WEBHOOK NOTIFICATION] Update event: channel=${channelId} video=${videoId} title="${title}"`,
     );
 
-    await queueManager.queueWebhookJob(videoId, channelId);
+    await channelProducer.queueWebhookJob(videoId, channelId);
     res.sendStatus(200);
   }
 }

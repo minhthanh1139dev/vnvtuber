@@ -1,6 +1,6 @@
 process.env.LOG_PROCESS = "scheduler";
 
-const { mongo } = require("../../infra");
+const mongo = require("../../infra/mongodb");
 const googleApiKeyService = require("../../services/google-api-key.service");
 const cronRegistry = require("../../scheduler/registry");
 const channelJob = require("../../jobs/channel.job");
@@ -13,7 +13,7 @@ async function bootstrap() {
   cronRegistry.register(channelJob.renewSubscriptions);
   cronRegistry.register(channelJob.pollActiveChannels);
 
-  logger.info("[SCHEDULER] Process running — cron jobs registered");
+  logger.info("[SCHEDULER] Ready — cron jobs registered");
 }
 
 async function gracefulShutdown(signal) {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 require("dotenv").config();
 
-const { mongo } = require("../src/infra");
+const mongo = require("../src/infra/mongodb");
 const User = require("../src/models/user.model");
 
 function readArg(flag) {

@@ -15,7 +15,7 @@ class CronJobRegistry {
       const start = Date.now();
       try {
         await job.action();
-        logger.info(`[CRON] Job "${job.name}" completed in ${Date.now() - start}ms`);
+        logger.debug(`[CRON] Job "${job.name}" completed in ${Date.now() - start}ms`);
       } catch (error) {
         logger.error(`[CRON] Job "${job.name}" failed:`, error);
       }
@@ -35,7 +35,7 @@ class CronJobRegistry {
   stopAll() {
     for (const [name, task] of this.jobs) {
       task.stop();
-      logger.info(`[CRON] Stopped job: ${name}`);
+      logger.debug(`[CRON] Stopped job: ${name}`);
     }
     this.jobs.clear();
   }

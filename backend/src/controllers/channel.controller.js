@@ -2,7 +2,7 @@
 
 const channelRepository = require("../repositories/channel.repository");
 const googleApiKeyService = require("../services/google-api-key.service");
-const queueManager = require("../queue");
+const channelProducer = require("../queue/channel.producer");
 const channelService = require("../services/channel.service");
 const ytbApiService = require("../services/ytb-api.service");
 const channelScheduler = require("../scheduler/channel.scheduler");
@@ -20,7 +20,7 @@ const {
 const { wrapController } = require("../utils/asyncHandler");
 
 const LIST_PROJECTION =
-  "displayName avatarUrl subscriberCount viewCount videoCount type parentChannelId socials organizationId status createdAt";
+  "displayName avatarUrl subscriberCount viewCount videoCount type parentChannelId socials projectId status createdAt";
 
 function mapChannelListItem(v) {
   return {
@@ -30,7 +30,7 @@ function mapChannelListItem(v) {
     type: v.type,
     parentChannelId: v.parentChannelId,
     socials: v.socials || [],
-    organizationId: v.organizationId,
+    projectId: v.projectId,
     status: v.status,
     subscriberCount: v.subscriberCount,
     viewCount: v.viewCount,
@@ -163,7 +163,7 @@ class ChannelController {
     logger.info(
       `[CONTROLLER] Registered channel: ${channelId} ("${finalDisplayName}")`,
     );
-    await queueManager.queueSubscriptionJob(channelId, "subscribe");
+    await channelProducer.queueSubscriptionJob(channelId, "subscribe");
 
     const syncSummary = await syncChannelStreamsOptional(channelId);
 
@@ -235,7 +235,7 @@ class ChannelController {
       addedCount = (result.upsertedCount || 0) + (result.modifiedCount || 0);
 
       for (const op of bulkOps) {
-        await queueManager.queueSubscriptionJob(
+        await channelProducer.queueSubscriptionJob(
           op.updateOne.filter._id,
           "subscribe",
         );

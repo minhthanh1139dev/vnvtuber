@@ -16,9 +16,9 @@ const videoSchema = new mongoose.Schema(
       ref: "Channel",
       required: true,
     },
-    organizationId: {
+    projectId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Organization",
+      ref: "Project",
       default: null,
     },
     title: {
@@ -116,6 +116,6 @@ videoSchema.index({ videoId: 1 }, { unique: true });
 videoSchema.index({ liveStatus: 1, actualStartAt: -1 });
 videoSchema.index({ scheduledStartAt: 1 });
 videoSchema.index({ channelId: 1, actualStartAt: -1 });
-videoSchema.index({ organizationId: 1, liveStatus: 1 });
+videoSchema.index({ projectId: 1, liveStatus: 1 });
 
 module.exports = mongoose.model("Video", videoSchema);
