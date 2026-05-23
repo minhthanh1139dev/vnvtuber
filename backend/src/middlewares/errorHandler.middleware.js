@@ -1,6 +1,5 @@
 "use strict";
 
-const logger = require("../utils/logger");
 const {
   ErrorResponse,
   CONFLICT,
@@ -27,15 +26,6 @@ function errorHandler(err, req, res, next) {
   }
 
   const error = toErrorResponse(err);
-  const status = error.statusCode;
-  const isClientError = status >= 400 && status < 500;
-
-  if (isClientError) {
-    logger.warn(`[HTTP ${status}] ${req.method} ${req.originalUrl}: ${error.message}`);
-  } else {
-    logger.error(`[HTTP ${status}] ${req.method} ${req.originalUrl}:`, err);
-  }
-
   return error.send(res);
 }
 

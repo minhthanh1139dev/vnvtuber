@@ -118,8 +118,8 @@ allFileTransport = new winston.transports.File({
   ),
 });
 
-/** API: console errors only (HTTP access lines come from Morgan). Worker/scheduler: info+ for ops visibility. */
-const CONSOLE_LEVEL = { api: "error", worker: "info", scheduler: "info" };
+/** API: info+ on console (HTTP via express-winston). Worker/scheduler: info+ for ops visibility. */
+const CONSOLE_LEVEL = { api: "info", worker: "info", scheduler: "info" };
 
 const logger = winston.createLogger({
   level: process.env.NODE_ENV === "development" ? "debug" : "info",
